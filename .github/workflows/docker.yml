@@ -1,0 +1,16 @@
+name: Docker Build
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t ghcr.io/kkivc/service-healthcheck:latest ./test
+      - run: docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+      - run: docker push ghcr.io/kkivc/service-healthcheck:latest

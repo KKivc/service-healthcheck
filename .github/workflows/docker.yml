@@ -26,3 +26,4 @@ jobs:
             docker pull ghcr.io/kkivc/service-healthcheck:latest
             docker rm -f healthcheck
             docker run -d --name healthcheck ghcr.io/kkivc/service-healthcheck:latest
+            

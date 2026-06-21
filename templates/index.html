@@ -1,0 +1,28 @@
+<html>
+    <head><title> test </title></head>
+    <body>
+        <h1>...</h1>
+        <table border="1">
+            <thead>          <!-- 表头区 -->
+                <tr>
+                    <th>状态</th>    <!-- 列名，加粗 -->
+                    <th>名字</th>
+                    <th>URL</th>
+                    <th>详情</th>
+                    <th>时间</th>
+                </tr>
+            </thead>
+            <tbody>      <!-- 数据区 -->      
+                {% for row in rows %}
+                <tr>
+                    <td>{% if row[3] == 1 %}✅{% else %}❌{% endif %}</td>   <!-- 实际数据，正常字体 -->
+                    <td>{{ row[1] }}</td>
+                    <td>{{ row[2] }}</td>
+                    <td>{{ row[4] }}</td>
+                    <td>{{ row[5] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </body>
+</html>

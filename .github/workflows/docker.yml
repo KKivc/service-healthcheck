@@ -12,6 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: pip install -r requirements.txt
+      - run: python -c "import web"
       - run: pytest test_healthcheck.py
       - run: docker build -t ghcr.io/kkivc/service-healthcheck:latest .
       - run: docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}

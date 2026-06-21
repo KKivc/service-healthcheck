@@ -10,10 +10,13 @@ import requests
 import logging
 import argparse
 import time
+import sqlite3
+from datetime import datetime
 
 
 last_status = {}
 
+# 检查
 def check_service(service):
      
      """
@@ -31,6 +34,17 @@ def check_service(service):
      except Exception as e:          # 若url错误没有状态码
         return False, str(e)
 
+# 数据库
+def init_db(cur):
+     
+     cur.execute('CREATE TABLE IF NOT EXISTS records(id INTEGER PRIMARY KEY, name VARCHAR(10), url tinytext, status TINYINT, msg TINYTEXT, time DATE)')
+
+# 写入表
+def insert_record(cur, name, url, status, msg):
+     time = datetime.now().isoformat()
+     
+     cur.execute('INSERT INTO records(name, url, status, msg, time) values(?, ?, ?, ?, ?)', (name, url, status, msg, time))
+     
 
 if __name__ == '__main__':
  
@@ -46,13 +60,19 @@ if __name__ == '__main__':
     parser.add_argument('--webhook', type=str)
     args = parser.parse_args()
 
+    
+            
+
+    conn = sqlite3.connect('./healthcheck.db')  # 连接文件
+    cur = conn.cursor()    # 申请一个执行器
+
+    init_db(cur)
+
     if args.status:
-            with open('./healthcheck.log', 'r', encoding='utf-8') as f:
-                content = f.read()
-                print(content)
-                exit()    
-
-
+         cur.execute('select * from records')
+         row = cur.fetchall()       # 取到所有数据
+         print(row)
+         exit()
 
     while True:
         
@@ -68,12 +88,14 @@ if __name__ == '__main__':
                     last_status[s['name']] = status  # 记录当前状态
 
                     if status :
-                        logging.info(f'{s["name"]}: {msg}')
+                        insert_record(cur, s['name'],  s['url'], status, msg)  # 写入表
                     else:
                         logging.error(f'{s["name"]}: {msg}')
 
                         if args.webhook:
                             requests.post(args.webhook, json={"msg_type": "text", "content": {"text": f'{s["name"]}: 错误！'}})
+
+            conn.commit()
 
             if args.interval:
                 time.sleep(args.interval)

@@ -1,0 +1,16 @@
+services:
+  check:
+    build: .
+    command: healthcheck.py --interval 300
+    volumes:
+      - .:/app
+    restart: unless-stopped
+
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    command: web.py
+    volumes:
+      - .:/app
+    restart: unless-stopped

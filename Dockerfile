@@ -1,7 +1,9 @@
 FROM python:3.12
 
-WORKDIR ./app
-COPY healthcheck.py config.json ./
-RUN pip install requests
-ENTRYPOINT ["python", "healthcheck.py"]
-CMD ["--interval", "60"]
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY healthcheck.py config.json web.py ./
+COPY templates/ ./templates/
+ENTRYPOINT ["python"]
+CMD ["healthcheck.py", "--interval", "60"]

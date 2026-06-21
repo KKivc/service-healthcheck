@@ -1,7 +1,19 @@
 <html>
-    <head><title> test </title></head>
+    <head>
+        <title> 服务监控系统 </title>
+        <meta http-equiv="refresh" content="10">
+        <style>
+            body { font-family: sans-serif; margin: 40px; }  
+            h1 { color: #7b92d0; }
+            a { text-decoration: none; margin-right: 10px; color: #d249d4; }
+            table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+            th, td { padding: 8px 12px; text-align: left; }
+            th { background: #f5f5f5; }
+        </style>
+    </head>
     <body>
-        <h1>...</h1>
+        <h1>服务状态</h1>
+        <a href="/">全部</a> | <a href="/?status=1">正常</a> | <a href="/?status=0">异常</a>
         <table border="1">
             <thead>          <!-- 表头区 -->
                 <tr>
@@ -12,7 +24,7 @@
                     <th>时间</th>
                 </tr>
             </thead>
-            <tbody>      <!-- 数据区 -->      
+            <tbody>      <!-- 数据区 -->       
                 {% for row in rows %}
                 <tr>
                     <td>{% if row[3] == 1 %}✅{% else %}❌{% endif %}</td>   <!-- 实际数据，正常字体 -->

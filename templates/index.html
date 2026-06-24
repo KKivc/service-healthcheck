@@ -1,40 +1,306 @@
 <html>
     <head>
-        <title> 服务监控系统 </title>
-        <meta http-equiv="refresh" content="10">
+        <title>🛡️ 服务哨兵</title>
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
+        <meta http-equiv="refresh" content="30">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
-            body { font-family: sans-serif; margin: 40px; }  
-            h1 { color: #7b92d0; }
-            a { text-decoration: none; margin-right: 10px; color: #d249d4; }
-            table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-            th, td { padding: 8px 12px; text-align: left; }
-            th { background: #f5f5f5; }
+            :root {
+                --bg: #f0f2f5;
+                --card-bg: white;
+                --card-shadow: rgba(0,0,0,0.1);
+                --text: #1a1a2e;
+                --subtext: #666;
+                --table-bg: white;
+                --th-bg: #f8fafc;
+                --th-color: #475569;
+                --border: #e2e8f0;
+                --link: #3b82f6;
+                --diag-bg: #f0fdf4;
+                --diag-border: #bbf7d0;
+            }
+            body.dark {
+                --bg: #1a1a2e;
+                --card-bg: #2d2d44;
+                --card-shadow: rgba(0,0,0,0.3);
+                --text: #e2e8f0;
+                --subtext: #94a3b8;
+                --table-bg: #2d2d44;
+                --th-bg: #363654;
+                --th-color: #cbd5e1;
+                --border: #3d3d5c;
+                --link: #60a5fa;
+                --diag-bg: #1a2e1a;
+                --diag-border: #166534;
+            }
+            body { font-family: -apple-system, sans-serif; margin: 40px; background: var(--bg); transition: background .3s, color .3s; }
+            h1 { color: var(--text); }
+            .dashboard { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-top: 20px; align-items: start; }
+            .cards { display: flex; gap: 12px; margin-bottom: 16px; }
+            .card { background: var(--card-bg); padding: 16px 24px; border-radius: 10px; box-shadow: 0 1px 3px var(--card-shadow); min-width: 100px; flex: 1; }
+            .card .num { font-size: 24px; font-weight: bold; }
+            .card .label { font-size: 12px; color: var(--subtext); margin-top: 2px; }
+            .card.ok .num { color: #22c55e; }
+            .card.fail .num { color: #ef4444; }
+            .card.total .num { color: #3b82f6; }
+            table { border-collapse: collapse; width: 100%; background: var(--table-bg); border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px var(--card-shadow); }
+            th, td { padding: 10px 14px; text-align: left; color: var(--text); font-size: 14px; }
+            th { background: var(--th-bg); color: var(--th-color); font-weight: 600; font-size: 13px; }
+            tr { border-bottom: 1px solid var(--border); }
+            a { text-decoration: none; margin-right: 10px; color: var(--link); }
+            a:hover { text-decoration: underline; }
+            a.card { display: block; text-decoration: none; color: inherit; }
+            a.card:hover { box-shadow: 0 3px 8px var(--card-shadow); }
+            tr.fail { background: #3d1f1f; }
+            tr.fail td:first-child { border-left: 3px solid #ef4444; }
+            body:not(.dark) tr.fail { background: #fef2f2; }
+            .url-cell { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .toggle-dark { background: none; border: 1px solid var(--border); color: var(--text); padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 14px; margin-left: auto; }
+            .toggle-dark:hover { background: var(--th-bg); }
+            .panel { background: var(--card-bg); border-radius: 10px; padding: 16px; box-shadow: 0 1px 3px var(--card-shadow); }
+            .panel.diag-panel { border-left: 4px solid #3b82f6; }
+            body.dark .panel.diag-panel { border-left-color: #60a5fa; }
+            .panel h2 { color: var(--text); font-size: 14px; margin: 0 0 12px 0; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+            .panel h2 .badge { font-size: 10px; background: var(--th-bg); color: var(--th-color); padding: 2px 7px; border-radius: 10px; font-weight: 400; }
+            .diag-card { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+            .diag-card:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+            .diag-card .name { font-weight: 600; font-size: 13px; color: #ef4444; }
+            .diag-card .err { font-size: 11px; color: var(--subtext); margin: 2px 0; }
+            .diag-card .suggestion { font-size: 12px; color: var(--text); margin-top: 4px; padding: 8px 10px; background: var(--diag-bg); border-left: 3px solid var(--diag-border); border-radius: 6px; line-height: 1.5; }
+            .all-ok { color: var(--subtext); font-size: 13px; text-align: center; padding: 30px 0; }
+            .all-ok .big { font-size: 32px; display: block; margin-bottom: 6px; }
+            .chart-wrap { margin-top: 12px; }
+            .chart-wrap canvas { display: block; max-height: 420px; }
+            td.score-0, td.score-1 { color: #ef4444; font-weight: 600; }
+            td.score-2 { color: #f97316; font-weight: 600; }
+            td.score-3 { color: #eab308; font-weight: 600; }
+            td.score-4 { color: #84cc16; font-weight: 600; }
+            td.score-5 { color: #22c55e; font-weight: 600; }
+            .add-bar { display: flex; gap: 8px; margin: 12px 0; align-items: center; }
+            .add-input { flex: 1; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--card-bg); color: var(--text); font-size: 14px; outline: none; }
+            .add-input:focus { border-color: #3b82f6; }
+            body.dark .add-input { background: #363654; border-color: #3d3d5c; }
+            .add-btn { padding: 8px 18px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; white-space: nowrap; }
+            .add-btn:hover { background: #2563eb; }
+            .add-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+            .del-btn { background: none; border: none; color: #ef4444; cursor: pointer; padding: 2px 6px; border-radius: 4px; font-size: 14px; opacity: 0.5; transition: opacity .2s; }
+            .del-btn:hover { opacity: 1; background: rgba(239,68,68,0.1); }
+            body.dark .del-btn { opacity: 0.7; }
+            body.dark .del-btn:hover { background: rgba(239,68,68,0.2); }
+            @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+            .fade-in { animation: fadeIn 0.4s ease-out both; }
+            .fade-in-1 { animation-delay: 0.05s; }
+            .fade-in-2 { animation-delay: 0.10s; }
+            .fade-in-3 { animation-delay: 0.15s; }
+            .fade-in-4 { animation-delay: 0.20s; }
+            .fade-in-5 { animation-delay: 0.25s; }
+            .footer { margin-top: 32px; padding: 16px 0; text-align: center; font-size: 12px; color: var(--subtext); border-top: 1px solid var(--border); }
+            .footer a { color: var(--link); }
+            .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            @media (max-width: 768px) {
+                body { margin: 16px; }
+                .dashboard { grid-template-columns: 1fr; }
+                .cards { flex-wrap: wrap; }
+                .card { min-width: calc(50% - 6px); flex: none; }
+                .panel.diag-panel { position: static; }
+                .add-bar { flex-wrap: wrap; }
+                .add-bar input { min-width: 100%; }
+            }
+            @media (max-width: 480px) {
+                h1 { font-size: 20px; }
+                .card { padding: 12px 16px; }
+                .card .num { font-size: 20px; }
+                th, td { padding: 6px 8px; font-size: 12px; }
+            }
         </style>
     </head>
     <body>
-        <h1>服务状态</h1>
-        <a href="/">全部</a> | <a href="/?status=1">正常</a> | <a href="/?status=0">异常</a>
-        <table border="1">
-            <thead>          <!-- 表头区 -->
-                <tr>
-                    <th>状态</th>    <!-- 列名，加粗 -->
-                    <th>名字</th>
-                    <th>URL</th>
-                    <th>详情</th>
-                    <th>时间</th>
-                </tr>
-            </thead>
-            <tbody>      <!-- 数据区 -->       
-                {% for row in rows %}
-                <tr>
-                    <td>{% if row[3] == 1 %}✅{% else %}❌{% endif %}</td>   <!-- 实际数据，正常字体 -->
-                    <td>{{ row[1] }}</td>
-                    <td>{{ row[2] }}</td>
-                    <td>{{ row[4] }}</td>
-                    <td>{{ row[5] }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <h1>服务状态</h1>
+            <a href="/check" onclick="this.textContent='检查中...'" style="background: #3b82f6; color: white; padding: 8px 20px; border-radius: 6px; text-decoration: none; font-size: 14px;">刷新</a>
+            <span style="font-size: 13px; color: var(--subtext);">上次更新: {{ time_ago(rows[0][4]) if rows else '暂无' }}</span>
+            <button class="toggle-dark" onclick="toggleDark()" id="darkBtn">🌙 深色</button>
+        </div>
+
+        <div class="add-bar">
+            <input id="svc-name" class="add-input" placeholder="服务名称" autocomplete="off">
+            <input id="svc-url" class="add-input" placeholder="https://..." autocomplete="off" style="flex:2;">
+            <button id="add-btn" class="add-btn" onclick="addService()">➕ 添加</button>
+            <span id="add-msg" style="display:none;color:#ef4444;font-size:13px;"></span>
+        </div>
+
+        <div class="dashboard">
+            <!--- 左列: 表格 + 延迟趋势 --->
+            <div>
+                <div class="cards fade-in fade-in-1">
+                    <a href="/" class="card total">
+                        <div class="num">{{ summary.total }}</div>
+                        <div class="label">服务总数</div>
+                    </a>
+                    <a href="/?status=1" class="card ok">
+                        <div class="num">{{ summary.ok }}</div>
+                        <div class="label">正常</div>
+                    </a>
+                    <a href="/?status=0" class="card fail">
+                        <div class="num">{{ summary.fail }}</div>
+                        <div class="label">异常</div>
+                    </a>
+                </div>
+
+                <div class="table-wrap fade-in fade-in-2">
+                <table>
+                    <thead>
+                        <tr class="fade-in fade-in-2">
+                            <th>状态</th>
+                            <th>服务名</th>
+                            <th>URL</th>
+                            <th>响应</th>
+                            <th>延迟</th>
+                            <th>健康评分</th>
+                            <th>最近检查</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>       
+                        {% for row in rows %}
+                        <tr class="{% if row[2] == 0 %}fail{% endif %} {% if loop.index <= 5 %}fade-in fade-in-{{ 2 + loop.index }}{% endif %}">
+                            <td>{% if row[2] == 1 %}✅{% else %}❌{% endif %}</td>
+                            <td>{{ row[0] }}</td>
+                            <td class="url-cell"><a href="{{ row[1] }}" target="_blank" style="color: #3b82f6;">{{ row[1] }}</a></td>
+                            <td>{{ row[3] }}</td>
+                            <td>{{ row[5] if row[5] is not none else '-' }}ms</td>
+                            <td class="score-{{ scores.get(row[0], 0) // 20 }}">{{ scores.get(row[0], 0) }}{% if scores.get(row[0], 0) >= 100 %} 😊{% elif scores.get(row[0], 0) >= 80 %} 🙂{% elif scores.get(row[0], 0) >= 60 %} 😟{% else %} 😡{% endif %}</td>
+                            <td>{{ time_ago(row[4]) }}</td>
+                            <td><button class="del-btn" onclick="deleteService('{{ row[0] }}')" title="删除">✖</button></td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8" style="text-align: center; padding: 40px 0; color: var(--subtext); font-size: 14px;">
+                                <div style="font-size: 40px; margin-bottom: 8px;">📡</div>
+                                暂无数据，<a href="/check" style="color: var(--link);">点击检查</a> 开始监控
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                </div>
+
+                <div class="chart-wrap panel fade-in fade-in-3">
+                    <h2>📈 延迟趋势 (ms)</h2>
+                    <canvas id="chart" height="400"></canvas>
+                </div>
+            </div>
+
+            <!--- 右列: 故障诊断 (AI 建议) --->
+            <div class="panel diag-panel fade-in fade-in-4" style="position: sticky; top: 20px;">
+                <h2>💡 故障诊断 <span class="badge">AI 建议</span></h2>
+                {% if failed %}
+                    {% for f in failed %}
+                    <div class="diag-card">
+                        <div class="name">❌ {{ f[0] }}</div>
+                        <div class="err">{{ f[3] }}</div>
+                        <div class="suggestion">{{ f[6] if f[6] else '(未启用 AI 诊断，请设置 LLM_API_KEY)' }}</div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="all-ok">
+                        <span class="big">✅</span>
+                        全部正常
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        <script>
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && (e.target.id === 'svc-name' || e.target.id === 'svc-url')) addService();
+            });
+            function addService() {
+                var name = document.getElementById('svc-name').value.trim();
+                var url = document.getElementById('svc-url').value.trim();
+                if (!name || !url) {
+                    document.getElementById('add-msg').textContent = '请填写服务名称和URL';
+                    document.getElementById('add-msg').style.display = 'block';
+                    return;
+                }
+                document.getElementById('add-msg').style.display = 'none';
+                var btn = document.getElementById('add-btn');
+                btn.disabled = true; btn.textContent = '添加中...';
+                fetch('/api/services', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({name: name, url: url})
+                }).then(function(r){ return r.json(); }).then(function(data){
+                    if (data.success) location.reload();
+                    else {
+                        document.getElementById('add-msg').textContent = data.error || '添加失败';
+                        document.getElementById('add-msg').style.display = 'block';
+                        btn.disabled = false; btn.textContent = '➕ 添加';
+                    }
+                }).catch(function(e){
+                    document.getElementById('add-msg').textContent = '请求失败: ' + e.message;
+                    document.getElementById('add-msg').style.display = 'block';
+                    btn.disabled = false; btn.textContent = '➕ 添加';
+                });
+            }
+            function deleteService(name) {
+                if (!confirm('确认删除服务 "' + name + '"？')) return;
+                fetch('/api/services/' + encodeURIComponent(name), {method: 'DELETE'})
+                .then(function(r){ return r.json(); }).then(function(data){
+                    if (data.success) location.reload();
+                    else alert('删除失败');
+                });
+            }
+            if (localStorage.getItem('dark') === '1') document.body.classList.add('dark');
+            var btn = document.getElementById('darkBtn');
+            btn.textContent = document.body.classList.contains('dark') ? '☀️ 浅色' : '🌙 深色';
+            function toggleDark() {
+                document.body.classList.toggle('dark');
+                var isDark = document.body.classList.contains('dark');
+                localStorage.setItem('dark', isDark ? '1' : '0');
+                btn.textContent = isDark ? '☀️ 浅色' : '🌙 深色';
+            }
+
+            fetch('/api/history').then(r=>r.json()).then(data=>{
+                var colors = ['#3b82f6','#22c55e','#ef4444','#f59e0b','#8b5cf6','#ec4899'];
+                var datasets = [];
+                var labels = [];
+                Object.keys(data).forEach(function(name, i){
+                    var points = data[name];
+                    if (!labels.length) labels = points.map(p=>p.time);
+                    datasets.push({
+                        label: name,
+                        data: points.map(p=>p.latency),
+                        borderColor: colors[i % colors.length],
+                        backgroundColor: colors[i % colors.length] + '15',
+                        borderWidth: 1,
+                        fill: true,
+                        tension: 0.3,
+                        spanGaps: true,
+                        pointRadius: 0
+                    });
+                });
+                new Chart(document.getElementById('chart'), {
+                    type: 'line',
+                    data: { labels: labels, datasets: datasets },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { labels: { color: '#666', boxWidth: 12, padding: 8, font: { size: 11 } } }
+                        },
+                        scales: {
+                            x: { ticks: { maxTicksLimit: 6, color: '#666', font: { size: 10 } }, grid: { color: '#e2e8f0' } },
+                            y: { beginAtZero: true, ticks: { color: '#666', font: { size: 10 } }, grid: { color: '#e2e8f0', lineWidth: 0.5 } }
+                        }
+                    }
+                });
+            });
+        </script>
+        <div class="footer">
+            🛡️ 服务哨兵 · 记录总数: {{ summary.total }} 服务 ·
+            {% if rows %}<span id="last-update-footer">上次检查: {{ time_ago(rows[0][4]) }}</span> · {% endif %}
+            <a href="https://github.com/KKiVC/service-healthcheck" target="_blank">GitHub</a>
+        </div>
     </body>
 </html>

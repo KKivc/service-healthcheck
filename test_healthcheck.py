@@ -31,8 +31,8 @@ def test_init_db():
 def test_insert_records():
     conn = sqlite3.connect(':memory:')
     cur = conn.cursor()
-    cur.execute('CREATE TABLE IF NOT EXISTS records(id INTEGER PRIMARY KEY, name VARCHAR(10), url tinytext, status TINYINT, msg TINYTEXT, time DATE)')
-    insert_record(cur, name='abc', url='http', status=1, msg=200)
+    cur.execute('CREATE TABLE IF NOT EXISTS records(id INTEGER PRIMARY KEY, name VARCHAR(10), url tinytext, status TINYINT, msg TINYTEXT, time DATE, latency INTEGER)')
+    insert_record(cur, name='abc', url='http', status=1, msg=200, latency=45)
     cur.execute("select * from records")
     result = cur.fetchall()
     assert result[0][1] == 'abc'

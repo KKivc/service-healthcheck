@@ -12,9 +12,12 @@ import argparse
 import time
 import sqlite3
 from datetime import datetime
+import os
 
 
 last_status = {}
+
+
 
 # 检查
 def check_service(service):
@@ -37,14 +40,21 @@ def check_service(service):
 # 数据库
 def init_db(cur):
      
-     cur.execute('CREATE TABLE IF NOT EXISTS records(id INTEGER PRIMARY KEY, name VARCHAR(10), url tinytext, status TINYINT, msg TINYTEXT, time DATE)')
+     cur.execute('CREATE TABLE IF NOT EXISTS records(id INTEGER PRIMARY KEY, name VARCHAR(10), url tinytext, status TINYINT, msg TINYTEXT, latency INTEGER, diagnosis TEXT, time DATE)')
+     try:
+         cur.execute('ALTER TABLE records ADD COLUMN latency INTEGER')
+     except:
+         pass  # latency 列已存在
+     try:
+         cur.execute('ALTER TABLE records ADD COLUMN diagnosis TEXT')
+     except:
+         pass  # diagnosis 列已存在
 
 # 写入表
-def insert_record(cur, name, url, status, msg):
-     time = datetime.now().isoformat()
-     
-     cur.execute('INSERT INTO records(name, url, status, msg, time) values(?, ?, ?, ?, ?)', (name, url, status, msg, time))
-     
+def insert_record(cur, name, url, status, msg, latency, diagnosis=''):
+    time = datetime.now().isoformat()
+    cur.execute('INSERT INTO records(name, url, status, msg, latency, diagnosis, time) values(?, ?, ?, ?, ?, ?, ?)', (name, url, status, msg, latency, diagnosis, time))
+
 
 if __name__ == '__main__':
  
@@ -83,13 +93,15 @@ if __name__ == '__main__':
 
             for s in services:          # 字典
                 last = last_status.get(s["name"])
+                t0 = time.time()
                 status,msg = check_service(s)
+                latency = int((time.time() - t0) * 1000)
                 if last is None or last != status:      # 若上一次是空的/状态发生改变
                     last_status[s['name']] = status  # 记录当前状态
 
-                    if status :
-                        insert_record(cur, s['name'],  s['url'], status, msg)  # 写入表
-                    else:
+                    insert_record(cur, s['name'],  s['url'], status, msg, latency)  # 写入表
+
+                    if not status:
                         logging.error(f'{s["name"]}: {msg}')
 
                         if args.webhook:

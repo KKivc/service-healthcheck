@@ -1,6 +1,6 @@
 services:
   check:
-    build: .
+    build: .      # 本地拉取镜像
     command: healthcheck.py --interval 300
     volumes:
       - .:/app

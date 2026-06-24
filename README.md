@@ -75,7 +75,7 @@ python web.py
 python healthcheck.py --interval 300
 ```
 
-访问 http://localhost:5000 即可看到看板。
+访问 http://localhost:4000 即可看到看板。
 
 ---
 
@@ -150,7 +150,6 @@ python healthcheck.py --interval 300
 | **Phase 3: 生态扩展** | 📋 规划中 | Ping/TCP 监控、SSL 证书检测、服务分组 |
 | **Phase 4: 平台化** | 💡 构想 | 公开状态页、多用户、全球多节点 |
 
-详见 [产品路线图](docs/roadmap.md) 和 [产品需求文档](docs/PRD.md)。
 
 ---
 

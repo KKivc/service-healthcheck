@@ -3,5 +3,5 @@ __pycache__/
 *.pyc
 healthcheck.log
 healthcheck.db
-docs/
 templates/
+.env

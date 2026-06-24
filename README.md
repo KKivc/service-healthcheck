@@ -13,10 +13,11 @@
 
 ---
 
-## 📖 看板样式
+## 📖 功能演示
+
 
 <p align="center">
-  <img src="screenshots/dashboard.png" alt="服务哨兵看板截图" width="800">
+  <video src="screenshots/demo.mp4" controls width="800"></video>
 </p>
 
 ---

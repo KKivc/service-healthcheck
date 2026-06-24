@@ -8,6 +8,22 @@ from datetime import datetime
 from flask import Flask, render_template, request, redirect, jsonify
 from healthcheck import check_service, init_db, insert_record
 
+def _read_env(key, default=''):
+    val = os.getenv(key)
+    if val:
+        return val
+    try:
+        with open('.env', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    k, v = line.split('=', 1)
+                    if k.strip() == key:
+                        return v.strip().strip('"').strip("'")
+    except:
+        pass
+    return default
+
 def time_ago(iso_str):
     if not iso_str:
         return '暂无'
@@ -29,12 +45,12 @@ def time_ago(iso_str):
 
 def llm_diagnose(name, msg, latency=0):
     """调用 LLM 生成故障诊断建议"""
-    api_key = os.getenv('LLM_API_KEY')
+    api_key = _read_env('LLM_API_KEY')
     if not api_key:
         return ''
-    url = os.getenv('LLM_API_URL', 'https://opencode.ai/zen/go/v1/chat/completions')
-    model = os.getenv('LLM_MODEL', 'deepseek-v4-flash')
-    system_prompt = '你是一名资深运维工程师。直接诊断，不要推理过程。'
+    url = _read_env('LLM_API_URL', 'https://opencode.ai/zen/go/v1/chat/completions')
+    model = _read_env('LLM_MODEL', 'deepseek-v4-flash')
+    system_prompt = '你是一名资深运维工程师。直接诊断，不要推理过程。使用专业的语言告诉用户答案'
     user_prompt = f'服务 "{name}" 返回{msg}，延迟{latency}ms。原因和修复建议（一句话）：'
     try:
         resp = requests.post(url, json={
@@ -145,7 +161,7 @@ def manual_check():
     cur = conn.cursor()
     init_db(cur)
 
-    webhook_url = os.getenv('WEBHOOK_URL')
+    webhook_url = _read_env('WEBHOOK_URL')
     for s in services:
         t0 = time.time()
         ok, msg = check_service(s)
@@ -241,10 +257,11 @@ def diagnosis():
 @app.route('/debug/env')
 def debug_env():
     import os
+    k = _read_env('LLM_API_KEY')
     return jsonify({
-        'LLM_API_KEY_set': bool(os.getenv('LLM_API_KEY')),
-        'LLM_API_KEY_preview': os.getenv('LLM_API_KEY', '')[:8] + '...' if os.getenv('LLM_API_KEY') else None,
-        'LLM_API_URL': os.getenv('LLM_API_URL', '(默认)'),
+        'LLM_API_KEY_set': bool(k),
+        'LLM_API_KEY_preview': k[:8] + '...' if k else None,
+        'LLM_API_URL': _read_env('LLM_API_URL', '(默认)'),
     })
 
 @app.route('/api/history')

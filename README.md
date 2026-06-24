@@ -17,7 +17,11 @@
 
 
 <p align="center">
-  <video src="screenshots/demo.mp4" controls width="800"></video>
+  <a href="screenshots/demo.mp4" target="_blank">
+    <img src="screenshots/dashboard.png" alt="点击播放演示视频" width="800" style="border-radius:8px;">
+    <br>
+    <sub>▶️ 点击截图播放演示视频</sub>
+  </a>
 </p>
 
 ---
